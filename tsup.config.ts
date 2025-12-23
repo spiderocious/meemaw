@@ -9,6 +9,6 @@ export default defineConfig({
   minify: true,
   treeshake: true,
   external: ['react', 'react-dom'],
-  sourcemap: true,
+  sourcemap: false,
   target: 'es2015',
 });
