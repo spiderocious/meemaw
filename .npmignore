@@ -1,0 +1,16 @@
+src
+docs
+node_modules
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__
+jest.config.js
+tsconfig.json
+tsup.config.ts
+.eslintrc.js
+.git
+.gitignore
+coverage
+*.log
