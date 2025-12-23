@@ -6,8 +6,6 @@ Elegant, declarative React utility components for common UI patterns.
 
 ```bash
 npm install meemaw
-# or
-yarn add meemaw
 ```
 
 ## Features
@@ -26,34 +24,37 @@ yarn add meemaw
 - `<Show>` - Show content with fallback
 - `<Hidden>` - Hide content conditionally or by breakpoint
 
+- (NEW) <Loadable> component for handling loading, error, and success states of async operations
+
+<Loadable
+loading={true|false}
+error={true|false}
+loadingComponent={Spinner}
+errorComponent={ErrorComponent}
+
+> {any thing only shown when no loading and no error occurs}
+> />
+
+the component should have inbuilt loading spinner and error component, which can be overridden by passing custom components as props.
+
 ### Iteration
 
 - `<Repeat>` - Repeat elements n times or iterate arrays
 
-### Time-based (Coming Soon)
+### Time-based
 
-- `<Cycle>` - Auto-cycling carousel
 - `<Delayed>` - Delayed rendering
-- `<Sequence>` - Staggered animations
 - `<ShowOnce>` - One-time displays
 
-### Interaction (Coming Soon)
+### Interaction
 
 - `<CopyToClipboard>` - Copy text to clipboard
 - `<Clamp>` - Text truncation with expand/collapse
 - `<Idle>` - Inactivity detection
 
-### Responsive (Coming Soon)
+### Responsive
 
 - `<Breakpoint>` - Render by viewport size
-
-### Loading (Coming Soon)
-
-- `<Skeleton>` - Loading placeholders
-
-### State Persistence (Coming Soon)
-
-- `<Storage>` - localStorage/sessionStorage sync
 
 ## Quick Start
 
@@ -91,6 +92,7 @@ See [full documentation](./docs/components.md) for all components and APIs.
 ## Bundle Size
 
 This library is optimized for minimal bundle size:
+
 - Tree-shakeable ESM exports
 - No external dependencies
 - Minified and compressed

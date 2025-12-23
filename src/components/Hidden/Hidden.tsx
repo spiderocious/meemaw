@@ -1,18 +1,18 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from 'react';
 
-type Breakpoint = "mobile" | "tablet" | "desktop";
+export type Breakpoint = 'mobile' | 'tablet' | 'desktop';
 
-interface HiddenProps {
+export interface HiddenProps {
   when?: boolean;
   if?: boolean;
   on?: Breakpoint | Breakpoint[];
   children: ReactNode;
 }
 
-const BREAKPOINTS = {
+export const BREAKPOINTS = {
   mobile: 768,
   tablet: 1024,
-};
+} as const;
 
 export function Hidden({
   when,
