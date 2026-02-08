@@ -1,0 +1,466 @@
+# Meemaw
+
+> Meemaw is an elegant, lightweight React utility component library that eliminates repetitive JSX patterns. Zero dependencies, <10KB, tree-shakeable, TypeScript-first, SSR compatible. Install with `npm install meemaw`. Requires React >=16.8.0.
+
+## Overview
+
+Meemaw provides 9 declarative React components for conditional rendering, iteration, time-based display, and user interaction. All components are imported from the `meemaw` package. The library has zero dependencies beyond React as a peer dependency, ships full TypeScript declarations, and supports both CommonJS and ESM.
+
+Package: https://www.npmjs.com/package/meemaw
+Repository: https://github.com/spiderocious/meemaw
+License: MIT
+Version: 1.0.2
+Bundle size: ~7KB minified + gzipped
+
+## Installation
+
+```bash
+npm install meemaw
+# or: yarn add meemaw
+# or: pnpm add meemaw
+```
+
+Peer dependencies: react >=16.8.0, react-dom >=16.8.0
+
+## Exports
+
+```typescript
+// Components
+export { Switch, Case, Default } from 'meemaw'
+export { Show } from 'meemaw'
+export { Hidden, BREAKPOINTS } from 'meemaw'
+export { Loadable } from 'meemaw'
+export { Repeat } from 'meemaw'
+export { Delayed } from 'meemaw'
+export { ShowOnce } from 'meemaw'
+export { CopyToClipboard } from 'meemaw'
+export { Clamp } from 'meemaw'
+
+// Types
+export type { Breakpoint, HiddenProps } from 'meemaw'
+export type { LoadableProps } from 'meemaw'
+export type { DelayedProps } from 'meemaw'
+export type { ShowOnceProps, PersistenceType } from 'meemaw'
+export type { CopyToClipboardProps } from 'meemaw'
+export type { ClampProps } from 'meemaw'
+```
+
+## Components
+
+### Switch, Case, Default
+
+Match-case pattern for multiple conditions. Renders the first matching `Case`. If none match, renders `Default`. Returns null if no match and no Default.
+
+Props:
+- `Switch`: children: ReactNode
+- `Case`: when: boolean, children: ReactNode
+- `Default`: children: ReactNode
+
+```tsx
+import { Switch, Case, Default } from 'meemaw';
+
+<Switch>
+  <Case when={status === 'pending'}>Processing...</Case>
+  <Case when={status === 'shipped'}>On the way!</Case>
+  <Case when={status === 'delivered'}>Delivered</Case>
+  <Default>Unknown status</Default>
+</Switch>
+```
+
+Behavior: Only the first matching Case renders. Order matters. If multiple Defaults exist, the last one wins.
+
+### Show
+
+Conditional rendering with optional fallback. Replaces ternary operators in JSX.
+
+Props:
+- when?: boolean — primary condition
+- if?: boolean — alias for `when` (`when` takes precedence if both provided)
+- fallback?: ReactNode — shown when condition is false (default: null)
+- children: ReactNode — shown when condition is true
+
+```tsx
+import { Show } from 'meemaw';
+
+<Show when={isLoggedIn} fallback={<Login />}>
+  <Dashboard />
+</Show>
+
+<Show if={hasPermission} fallback={<AccessDenied />}>
+  <AdminPanel />
+</Show>
+```
+
+### Hidden
+
+Hide content conditionally or by responsive breakpoint. Removes content from the DOM (returns null) when hidden.
+
+Props:
+- when?: boolean — hide when true
+- if?: boolean — alias for `when`
+- on?: Breakpoint | Breakpoint[] — responsive breakpoint(s) to hide on
+- children: ReactNode
+
+Breakpoint type: 'mobile' | 'tablet' | 'desktop'
+
+Built-in breakpoints (exported as BREAKPOINTS constant):
+- mobile: viewport < 768px
+- tablet: viewport < 1024px
+- desktop: viewport >= 1024px
+
+`when` and `on` are combined with OR logic. Listens to window resize events. SSR safe (defaults to 'desktop').
+
+```tsx
+import { Hidden } from 'meemaw';
+
+<Hidden when={!isPublic}>
+  <SecretContent />
+</Hidden>
+
+<Hidden on="mobile">
+  <DesktopNav />
+</Hidden>
+
+<Hidden on={['mobile', 'tablet']}>
+  <DesktopOnlyFeature />
+</Hidden>
+```
+
+### Loadable
+
+Handle async operation states (loading, error, success) with built-in default UI.
+
+Props:
+- loading?: boolean — show loading state (default: false)
+- error?: boolean | Error | string — show error state (default: false)
+- loadingComponent?: ReactNode — custom loading UI (default: animated spinner)
+- errorComponent?: ReactNode | ((error: Error | string) => ReactNode) — custom error UI (default: red error box)
+- children: ReactNode — success content
+
+Priority: loading > error > children. If loading is true, error and children are ignored.
+
+Default spinner: 20x20px animated circular spinner (CSS keyframes, 0.6s rotation).
+Default error: red box (#fee background, #c00 text) displaying "Error: {message}".
+
+```tsx
+import { Loadable } from 'meemaw';
+
+<Loadable loading={loading} error={error}>
+  <UserProfile data={data} />
+</Loadable>
+
+<Loadable
+  loading={isLoading}
+  error={error}
+  loadingComponent={<CustomSpinner />}
+  errorComponent={(err) => <div>Failed: {String(err)}</div>}
+>
+  <Content />
+</Loadable>
+```
+
+### Repeat
+
+Iterate over arrays or repeat elements n times.
+
+Props (generic: Repeat<T>):
+- times?: number — repeat n times (0-based index)
+- each?: T[] — array to iterate (takes priority over `times`)
+- children: ((item: T, index: number) => ReactNode) | ReactNode
+
+If children is a function, it receives (item, index). If static, it is cloned for each iteration.
+
+```tsx
+import { Repeat } from 'meemaw';
+
+// Repeat n times
+<Repeat times={5}>
+  {(_, index) => <Star key={index} />}
+</Repeat>
+
+// Iterate array
+<Repeat each={users}>
+  {(user, index) => <UserCard key={user.id} user={user} />}
+</Repeat>
+
+// Static children repeated
+<Repeat times={3}>
+  <Divider />
+</Repeat>
+```
+
+TypeScript: supports generic type inference via `<Repeat<User> each={users}>`.
+
+### Delayed
+
+Delay rendering until a condition is met or a timeout expires.
+
+Props:
+- until?: boolean — show when this becomes true (ignores `till`)
+- till?: Date | number — show after delay (number = milliseconds, Date = absolute time)
+- fallback?: ReactNode — shown while waiting (default: null)
+- children: ReactNode
+
+If `until` is provided, `till` is ignored. If `till` is <= 0, content shows immediately. Cleans up timer on unmount.
+
+```tsx
+import { Delayed } from 'meemaw';
+
+<Delayed till={3000}>
+  <Announcement />
+</Delayed>
+
+<Delayed till={new Date('2025-01-01')}>
+  <NewYearMessage />
+</Delayed>
+
+<Delayed until={dataLoaded} fallback={<Loading />}>
+  <DataView />
+</Delayed>
+```
+
+### ShowOnce
+
+Display content only once, with optional persistence across sessions.
+
+Props:
+- for?: number — duration in ms to show before hiding (optional)
+- persist?: boolean — enable persistence (default: false)
+- persistKey?: string — custom storage key (auto-generated if omitted)
+- persistType?: PersistenceType — storage type (default: 'local')
+- children: ReactNode
+
+PersistenceType: 'local' | 'session' | 'memory'
+- 'local': localStorage — survives reload and browser close
+- 'session': sessionStorage — survives reload, cleared when tab closes
+- 'memory': in-memory Map — cleared on page reload
+
+Storage key prefix: `meemaw_showonce_`. SSR safe (checks typeof window).
+
+```tsx
+import { ShowOnce } from 'meemaw';
+
+<ShowOnce for={5000} persist>
+  <WelcomeBanner />
+</ShowOnce>
+
+<ShowOnce persist persistType="session">
+  <NewFeatureTooltip />
+</ShowOnce>
+
+<ShowOnce persist persistKey="onboarding-v1" persistType="local">
+  <OnboardingTour />
+</ShowOnce>
+
+<ShowOnce persist persistType="memory">
+  <FirstTimeHint />
+</ShowOnce>
+```
+
+### CopyToClipboard
+
+Copy text to clipboard with success/error handling and render function pattern.
+
+Props:
+- text?: string — text to copy (if omitted, extracted from children's text content)
+- onSuccess?: () => void — callback on successful copy
+- onError?: (error: Error) => void — callback on failed copy
+- children: ReactNode | ((copy: () => void, copied: boolean) => ReactNode)
+
+If children is a function, it receives (copy, copied) for manual control. If children is a React element, onClick is automatically added. The `copied` state resets to false after 2000ms.
+
+Uses navigator.clipboard.writeText() with a fallback to document.execCommand('copy') for legacy browsers.
+
+```tsx
+import { CopyToClipboard } from 'meemaw';
+
+<CopyToClipboard text="npm install meemaw">
+  <button>Copy command</button>
+</CopyToClipboard>
+
+<CopyToClipboard text={shareUrl}>
+  {(copy, copied) => (
+    <button onClick={copy}>
+      {copied ? 'Copied!' : 'Copy link'}
+    </button>
+  )}
+</CopyToClipboard>
+
+<CopyToClipboard
+  text={code}
+  onSuccess={() => toast.success('Copied!')}
+  onError={(err) => toast.error(err.message)}
+>
+  <CopyButton />
+</CopyToClipboard>
+
+// Auto-extract text from children
+<CopyToClipboard>
+  <code>const x = 42;</code>
+</CopyToClipboard>
+```
+
+### Clamp
+
+Truncate text with optional expand/collapse functionality.
+
+Props:
+- maxChar?: number — max characters (character-based truncation)
+- maxLines?: number — max lines (CSS -webkit-line-clamp truncation)
+- truncateEnd?: string — appended to truncated text (default: '...')
+- expandable?: boolean — show expand/collapse button (default: false)
+- expandText?: string — button text when collapsed (default: 'Show more')
+- collapseText?: string — button text when expanded (default: 'Show less')
+- onToggle?: (isExpanded: boolean) => void — callback on toggle
+- children: ReactNode
+
+If content is shorter than the limit, no truncation or button is shown. Character-based mode slices text and appends truncateEnd. Line-based mode uses CSS `-webkit-line-clamp` with `overflow: hidden`.
+
+```tsx
+import { Clamp } from 'meemaw';
+
+<Clamp maxChar={100}>
+  {longText}
+</Clamp>
+
+<Clamp maxLines={3}>
+  <p>{article}</p>
+</Clamp>
+
+<Clamp
+  maxChar={200}
+  expandable
+  expandText="Read more"
+  collapseText="Show less"
+  onToggle={(expanded) => console.log(expanded)}
+>
+  {biography}
+</Clamp>
+```
+
+## Real-World Examples
+
+### Loading state with data fetching
+
+```tsx
+function UserDashboard() {
+  const { data, loading, error } = useQuery('/api/dashboard');
+  return (
+    <Loadable loading={loading} error={error} loadingComponent={<Skeleton />}>
+      <Switch>
+        <Case when={!data.posts.length}><EmptyState /></Case>
+        <Case when={data.posts.length > 0}>
+          <Repeat each={data.posts}>
+            {post => <PostCard key={post.id} post={post} />}
+          </Repeat>
+        </Case>
+      </Switch>
+    </Loadable>
+  );
+}
+```
+
+### Responsive navigation
+
+```tsx
+function Navigation() {
+  return (
+    <>
+      <Hidden on={['mobile', 'tablet']}><DesktopNav /></Hidden>
+      <Hidden on="desktop"><MobileNav /></Hidden>
+    </>
+  );
+}
+```
+
+### First-time user experience
+
+```tsx
+function App() {
+  return (
+    <div>
+      <ShowOnce persist persistKey="welcome-v2" persistType="local">
+        <WelcomeModal />
+      </ShowOnce>
+      <Delayed until={userDataLoaded}>
+        <MainContent />
+      </Delayed>
+    </div>
+  );
+}
+```
+
+### Role-based content
+
+```tsx
+function Dashboard({ user }) {
+  return (
+    <Switch>
+      <Case when={user.role === 'admin'}><AdminDashboard /></Case>
+      <Case when={user.role === 'moderator'}><ModeratorDashboard /></Case>
+      <Case when={user.role === 'user'}><UserDashboard /></Case>
+      <Default><GuestView /></Default>
+    </Switch>
+  );
+}
+```
+
+### Code block with copy
+
+```tsx
+function CodeBlock({ code, language }) {
+  return (
+    <div className="code-block">
+      <CopyToClipboard text={code}>
+        {(copy, copied) => (
+          <button onClick={copy}>{copied ? '✓ Copied' : 'Copy'}</button>
+        )}
+      </CopyToClipboard>
+      <pre><code className={language}>{code}</code></pre>
+    </div>
+  );
+}
+```
+
+### Article preview with clamp
+
+```tsx
+function ArticleCard({ article }) {
+  return (
+    <article>
+      <h2>{article.title}</h2>
+      <Clamp maxLines={3} expandable expandText="Read more" collapseText="Show less">
+        <p>{article.content}</p>
+      </Clamp>
+    </article>
+  );
+}
+```
+
+## TypeScript
+
+All components ship with full type declarations. Generic support is available for `Repeat<T>`.
+
+```tsx
+import { Repeat, ShowOnce, PersistenceType } from 'meemaw';
+
+interface User { id: number; name: string; }
+const users: User[] = [/* ... */];
+
+<Repeat<User> each={users}>
+  {(user) => <div key={user.id}>{user.name}</div>}
+</Repeat>
+
+const persistType: PersistenceType = 'local';
+<ShowOnce persist persistType={persistType}>
+  <Notification />
+</ShowOnce>
+```
+
+## Compatibility
+
+- React >= 16.8.0
+- SSR frameworks: Next.js, Remix, etc.
+- Browsers: Chrome, Firefox, Safari, Edge (last 2 versions)
+- Module formats: CommonJS (.js) and ES Modules (.mjs)
+- Tree-shakeable (sideEffects: false)

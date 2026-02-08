@@ -203,7 +203,7 @@ Delay rendering until a condition is met or timeout expires.
 
 ```jsx
 import { Delayed } from 'meemaw';
-
+e
 // Show after 3 seconds
 <Delayed till={3000}>
   <Announcement />
